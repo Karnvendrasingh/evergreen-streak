@@ -45,18 +45,77 @@ jobs:
             sleep $DELAY
           fi
 
-      - name: Update Activity Logs
+      - name: Fetch Tech Quote / Tip
+        id: get_quote
+        if: steps.check_activity.outputs.skip != 'true'
+        run: |
+          QUOTES=(
+            "Clean code always looks like it was written by someone who cares. — Robert C. Martin"
+            "Simplicity is prerequisite for reliability. — Edsger W. Dijkstra"
+            "First, solve the problem. Then, write the code. — John Johnson"
+            "Make it work, make it right, make it fast. — Kent Beck"
+            "Any fool can write code that a computer can understand. Good programmers write code that humans can understand. — Martin Fowler"
+            "Programming isn't about what you know; it's about what you can figure out. — Chris Pine"
+            "Code is like humor. When you have to explain it, it’s bad. — Cory House"
+            "Fix the cause, not the symptom. — Steve Maguire"
+            "Optimism is an occupational hazard of programming: feedback is the treatment. — Kent Beck"
+            "Experience is the name everyone gives to their mistakes. — Oscar Wilde"
+          )
+          RANDOM_Q=${QUOTES[$RANDOM % ${#QUOTES[@]}]}
+          echo "quote=$RANDOM_Q" >> $GITHUB_OUTPUT
+          echo "Fetched Quote: $RANDOM_Q"
+
+      - name: Update Activity Logs & Live README Counter
         if: steps.check_activity.outputs.skip != 'true'
         run: |
           TIMESTAMP=$(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')
           DATE_ONLY=$(TZ='Asia/Kolkata' date '+%Y-%m-%d')
           TIME_ONLY=$(TZ='Asia/Kolkata' date '+%H:%M:%S %Z')
+          QUOTE="${{ steps.get_quote.outputs.quote }}"
           
           # Update single-line update.txt
           echo "Last updated: $TIMESTAMP" > update.txt
           
           # Append formatted record to history.md
-          echo "| $DATE_ONLY $TIME_ONLY | Streak Safety Backup | ✅ Active |" >> history.md
+          echo "| $DATE_ONLY $TIME_ONLY | Streak Safety Backup | $QUOTE | ✅ Active |" >> history.md
+          
+          # Count total backup logs (subtract header lines)
+          TOTAL_BACKUPS=$(($(wc -l < history.md) - 5))
+          if [ $TOTAL_BACKUPS -lt 1 ]; then TOTAL_BACKUPS=1; fi
+          
+          # Update live counter badge in README.md if present
+          sed -i "s/Saved%20Backups-[0-9]*/Saved%20Backups-${TOTAL_BACKUPS}/g" README.md || true
+
+      - name: Send Discord Notification (Optional)
+        if: steps.check_activity.outputs.skip != 'true' && env.DISCORD_WEBHOOK != ''
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          TIMESTAMP=$(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')
+          QUOTE="${{ steps.get_quote.outputs.quote }}"
+          curl -H "Content-Type: application/json" -X POST -d '{
+            "embeds": [{
+              "title": "🌱 Evergreen Streak Saved!",
+              "color": 3066993,
+              "fields": [
+                {"name": "Date & Time", "value": "'"$TIMESTAMP"'", "inline": true},
+                {"name": "Status", "value": "✅ Streak Active", "inline": true},
+                {"name": "Daily Quote", "value": "'"$QUOTE"'", "inline": false}
+              ],
+              "footer": {"text": "Evergreen Streak • Automating Productivity"}
+            }]
+          }' "$DISCORD_WEBHOOK" || echo "Discord notification failed or not configured."
+
+      - name: Send Telegram Notification (Optional)
+        if: steps.check_activity.outputs.skip != 'true' && env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          TIMESTAMP=$(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')
+          QUOTE="${{ steps.get_quote.outputs.quote }}"
+          MSG="🌱 *Evergreen Streak Saved!*%0A%0A📅 *Time:* $TIMESTAMP%0A✅ *Status:* Active%0A💬 *Quote:* _$QUOTE_"
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" -d "chat_id=${TELEGRAM_CHAT_ID}&text=${MSG}&parse_mode=Markdown" || echo "Telegram notification failed."
 
       - name: Commit and Push Changes
         if: steps.check_activity.outputs.skip != 'true'
@@ -78,6 +137,6 @@ jobs:
           RANDOM_INDEX=$((RANDOM % ${#MESSAGES[@]}))
           SELECTED_MSG="${MESSAGES[$RANDOM_INDEX]}"
           
-          git add update.txt history.md
+          git add update.txt history.md README.md
           git commit -m "$SELECTED_MSG" || echo "No changes to commit"
           git push origin main
