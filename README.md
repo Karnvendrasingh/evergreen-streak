@@ -2,8 +2,8 @@
 
 # 🌱 Evergreen Streak
 
-> 🚀 Smart, Organic & Automated GitHub Streak Saver  
-> An intelligent **GitHub Actions** workflow featuring real-world weather telemetry, daily developer tech tips, annual streak progress bars, 11:30 PM emergency fail-safe triggers, and optional Discord/Telegram notifications! 🌿
+> 🚀 **Smart, Organic & Fail-Safe GitHub Streak Preservation Engine**  
+> An intelligent **GitHub Actions** automation system that protects your GitHub contribution graph—firing only when you haven't committed naturally, featuring real-world weather telemetry, daily developer tech tips, live annual progress tracking, 11:30 PM emergency fail-safe triggers, and instant Discord/Telegram notifications! 🌿
 
 ![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-Smart%20Enabled-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
 ![Saved Backups](https://img.shields.io/badge/Saved%20Backups-1-success?style=for-the-badge&logo=git&logoColor=white)
@@ -20,32 +20,31 @@
 
 ---
 
-## ✨ Advanced Feature Suite
-
-🛡️ **Smart Safety Net (Check-Before-Commit)**  
-Queries GitHub API before executing. If you have already made commits today across your public repos, it **skips execution** so your activity looks 100% natural!
-
-🚨 **Dual-Check Fail-Safe (8:30 AM & 11:30 PM IST)**  
-Runs a morning check (8:30 AM IST) and a late-night emergency check (11:30 PM IST) before midnight so your streak is guaranteed never to break.
-
-🌤️ **Real-World Weather Telemetry**  
-Fetches real-time weather & temperature data (in IST) via Open-Meteo API and logs telemetry in your history record.
-
-💡 **Daily Developer Tips & Insights**  
-Rotates actionable Git, Python, JavaScript, and CLI productivity tips in both `README.md` and commit details.
-
-🎲 **Organic Timing Jitter**  
-Adds a randomized delay (2 to 30 minutes) before committing so execution times naturally vary every day.
-
-📊 **Annual Streak Goal Progress Bar**  
-Renders a dynamic visual ASCII progress bar directly in `README.md` tracking annual streak progress!
-
-🔔 **Instant Webhook Notifications (Discord & Telegram)**  
-Optionally notifies your phone, Discord server, or Telegram chat whenever a streak commit is safely generated.
+## 📋 Table of Contents
+- [✨ Key Innovations & Features](#-key-innovations--features)
+- [🧠 Execution Architecture](#-execution-architecture)
+- [🕒 Activity Log Preview](#-activity-log-preview)
+- [🔔 Webhook Notifications Setup](#-setting-up-notifications-optional)
+- [🚀 Quick Start & Setup Guide](#-getting-started)
+- [🧑‍💻 Author & License](#-created-by)
 
 ---
 
-## 🧠 Architecture & Execution Workflow
+## ✨ Key Innovations & Features
+
+| Feature | Description | Realism Impact |
+|---|---|---|
+| 🛡️ **Smart Safety Net** | Queries GitHub REST API; skips execution if you've already committed today across public repositories. | 100% Organic |
+| 🚨 **Dual-Check Fail-Safe** | Runs morning check (8:30 AM IST) & late-night check (11:30 PM IST) to guarantee streak safety before midnight. | Fail-Safe Protection |
+| 🌤️ **Weather Telemetry** | Fetches live temperature & conditions (IST) via Open-Meteo API and logs context in history records. | Context-Aware |
+| 💡 **Daily Tech Tips** | Rotates actionable Git, Python, JS, & CLI productivity tips in `README.md` and commit details. | Educational Value |
+| 🎲 **Organic Timing Jitter** | Adds random execution delay (2 to 30 mins) so commit timestamps naturally vary every day. | Human-like Jitter |
+| 📊 **Annual Goal Progress Bar** | Auto-calculates current day of year and renders a dynamic ASCII progress bar in `README.md`. | Live Visuals |
+| 🔔 **Instant Webhooks** | Sends notifications to Discord channels or Telegram bots when repository secrets are set. | Real-Time Alerts |
+
+---
+
+## 🧠 Execution Architecture
 
 ```mermaid
 flowchart TD
@@ -60,9 +59,9 @@ flowchart TD
 
 ---
 
-## 🕒 Example Activity Log Output
+## 🕒 Activity Log Preview
 
-Your [`history.md`](file:///d:/GithubAuto/Github-Streak-Saver-main/history.md) log entries look like this:
+Your [`history.md`](file:///d:/GithubAuto/Github-Streak-Saver-main/history.md) maintains clean, transparent records:
 
 | Date & Time (IST) | Action | Weather Telemetry | Daily Tech Quote / Tip | Status |
 |---|---|---|---|---|
@@ -81,17 +80,7 @@ Want instant notifications on your phone or Discord server when a streak is save
      - Name = `TELEGRAM_BOT_TOKEN`, Value = Your Bot API Token.
      - Name = `TELEGRAM_CHAT_ID`, Value = Your Telegram Chat ID.
 
-If secrets are not added, the notification step is safely skipped!
-
----
-
-## ⚙️ Workflow Setup
-
-The workflow file is located at:
-
-```
-.github/workflows/streak.yml
-```
+If secrets are not configured, the notification step is safely skipped!
 
 ---
 
@@ -110,6 +99,12 @@ cd evergreen-streak
 - Under **Workflow permissions**, select:
   - ✅ **Read and write permissions**
   - ✅ **Allow GitHub Actions to create and approve pull requests**
+
+### 3️⃣ Manual Execution (Optional)
+
+You can trigger a manual run anytime:
+1. Go to **Actions** → Select **Evergreen Streak Saver**.
+2. Click **Run workflow** ➔ **Run workflow**.
 
 ---
 
