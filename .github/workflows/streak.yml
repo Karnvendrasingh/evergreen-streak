@@ -1,32 +1,83 @@
-name: GitHub Streak Saver
+name: Evergreen Streak Saver
 
 on:
   schedule:
-    - cron: '0 3 * * *'  # Runs every day at 8:30 AM IST
-  workflow_dispatch:      # Allows you to run it manually
+    - cron: '0 3 * * *'  # Runs daily at 8:30 AM IST (03:00 UTC)
+  workflow_dispatch:      # Allows manual trigger at any time
 
 jobs:
   update-commit:
     runs-on: ubuntu-latest
     permissions:
-      contents: write    # ✅ This allows GitHub Action to push commits
+      contents: write    # Grants permission to push commits to main
 
     steps:
-      # Step 1: Checkout your repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Step 2: Update timestamp file
-      - name: Update timestamp file
+      - name: Smart Activity Check
+        id: check_activity
         run: |
-          # Create or overwrite update.txt with current IST date & time
-          echo "Last updated: $(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')" > update.txt
+          TODAY=$(TZ='Asia/Kolkata' date '+%Y-%m-%d')
+          echo "Checking user activity for $TODAY..."
+          
+          # Fetch recent public events for user
+          EVENTS=$(curl -s -H "Accept: application/vnd.github+json" "https://api.github.com/users/Karnvendrasingh/events/public" || echo "[]")
+          
+          # Check if user already pushed commits today across public repos
+          COMMITTED_TODAY=$(echo "$EVENTS" | grep -E "\"type\": \"PushEvent\"" -A 5 | grep "\"created_at\": \"$TODAY" || true)
+          
+          if [ -n "$COMMITTED_TODAY" ] && [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            echo "::notice::Natural commit detected for today ($TODAY)! Skipping automated commit to keep streak 100% organic."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "No natural commit detected yet today (or running manual dispatch). Proceeding with streak backup."
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
 
-      # Step 3: Commit and push the change
-      - name: Commit and push changes
+      - name: Organic Timing Jitter
+        if: steps.check_activity.outputs.skip != 'true'
+        run: |
+          if [ "${{ github.event_name }}" == "schedule" ]; then
+            # Random delay between 120s (2m) and 1800s (30m)
+            DELAY=$((RANDOM % 1680 + 120))
+            echo "Adding organic jitter: waiting $DELAY seconds before committing..."
+            sleep $DELAY
+          fi
+
+      - name: Update Activity Logs
+        if: steps.check_activity.outputs.skip != 'true'
+        run: |
+          TIMESTAMP=$(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')
+          DATE_ONLY=$(TZ='Asia/Kolkata' date '+%Y-%m-%d')
+          TIME_ONLY=$(TZ='Asia/Kolkata' date '+%H:%M:%S %Z')
+          
+          # Update single-line update.txt
+          echo "Last updated: $TIMESTAMP" > update.txt
+          
+          # Append formatted record to history.md
+          echo "| $DATE_ONLY $TIME_ONLY | Streak Safety Backup | ✅ Active |" >> history.md
+
+      - name: Commit and Push Changes
+        if: steps.check_activity.outputs.skip != 'true'
         run: |
           git config --global user.name "Karnvendrasingh"
           git config --global user.email "karnvendrasingh@gmail.com"
-          git add update.txt
-          git commit -m "Daily Commit" || echo "No changes to commit"
+          
+          # Array of clean, realistic conventional commit messages
+          MESSAGES=(
+            "docs: sync daily activity log"
+            "chore: update status timestamp"
+            "docs: update streak records"
+            "refactor: refresh build metadata"
+            "docs: log daily session activity"
+            "style: update activity metrics"
+          )
+          
+          # Pick a random message index
+          RANDOM_INDEX=$((RANDOM % ${#MESSAGES[@]}))
+          SELECTED_MSG="${MESSAGES[$RANDOM_INDEX]}"
+          
+          git add update.txt history.md
+          git commit -m "$SELECTED_MSG" || echo "No changes to commit"
           git push origin main

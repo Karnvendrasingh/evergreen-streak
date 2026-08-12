@@ -2,11 +2,11 @@
 
 # 🌱 Evergreen Streak
 
-> 🚀 Keep your GitHub streak alive — automatically!  
-> This repository uses **GitHub Actions** to make a small daily commit, ensuring your contribution graph stays green 🌿
+> 🚀 Smart, Organic & Automated GitHub Streak Saver  
+> An intelligent **GitHub Actions** workflow that acts as a safety net for your GitHub contribution streak—firing only when you haven't committed naturally, with random execution timing and human-like commit messages! 🌿
 
-![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-Enabled-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
-![Auto Commit](https://img.shields.io/badge/Auto%20Commit-Daily-success?style=for-the-badge&logo=git&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-Smart%20Enabled-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
+![Auto Commit](https://img.shields.io/badge/Auto%20Commit-Organic-success?style=for-the-badge&logo=git&logoColor=white)
 ![Timezone](https://img.shields.io/badge/Timezone-IST-orange?style=for-the-badge&logo=clock&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
 
@@ -14,31 +14,47 @@
 
 ---
 
-## ✨ Features
+## ✨ Smart & Organic Features
 
-✅ **Automatic Daily Commits** – Runs every day at 8:30 AM IST (3:00 AM UTC)  
-✅ **Fully Cloud-Based** – No need to keep your PC on; it's powered by GitHub Actions  
-✅ **Customizable** – Change the commit schedule or file contents easily  
-✅ **Lightweight & Safe** – Only updates one text file (`update.txt`) with the current date and time  
+🛡️ **Smart Safety Net (Check-Before-Commit)**  
+Checks GitHub API before executing. If you have already made commits today, it **skips execution** so your activity looks 100% natural!
+
+🎲 **Organic Timing Jitter**  
+Adds a randomized delay (2 to 30 minutes) before committing so execution times naturally vary every day instead of hitting the exact same minute.
+
+💬 **Human-Like Conventional Commit Messages**  
+Randomly selects clean, professional commit messages (`docs: sync daily activity log`, `chore: update status timestamp`, `refactor: refresh build metadata`).
+
+📖 **Structured Activity History Log**  
+Appends clean, formatted Markdown records to [`history.md`](file:///d:/GithubAuto/Github-Streak-Saver-main/history.md) for transparent, clean activity history tracking.
 
 ---
 
 ## 🧠 How It Works
 
-1. A **GitHub Action** runs daily using a CRON schedule.  
-2. It updates `update.txt` with the latest timestamp (in IST).  
-3. The action commits and pushes the change to your repo.  
-4. GitHub detects this activity → keeps your streak active ✅  
+```mermaid
+flowchart TD
+    A[Cron Schedule Trigger / Manual] --> B[Check GitHub API for Today's Activity]
+    B -->|Natural Commit Detected| C[Skip Execution - Maintain 100% Organic Activity]
+    B -->|No Commit Yet Today| D[Apply Random Timing Delay - 2 to 30 mins]
+    D --> E[Update update.txt & Append to history.md]
+    E --> F[Commit with Random Conventional Message & Push to main]
+```
+
+1. **GitHub Action** triggers daily.
+2. Checks GitHub REST API for your public events today (`Karnvendrasingh`).
+3. If activity exists: outputs notice and skips.
+4. If no activity: waits for a random delay, updates `update.txt` and `history.md`, and pushes a commit with a conventional message.
 
 ---
 
-## 🕒 Example Output
+## 🕒 Example Activity Output
 
-Your `update.txt` will look like this:
+Your [`history.md`](file:///d:/GithubAuto/Github-Streak-Saver-main/history.md) log entries look like this:
 
-```
-Last updated: 2025-10-31 08:30:00 IST
-```
+| Date & Time (IST) | Action | Status |
+|---|---|---|
+| 2026-08-13 08:42:15 IST | Streak Safety Backup | ✅ Active |
 
 ---
 
@@ -53,12 +69,12 @@ The workflow file is located at:
 ### 💾 Full Workflow Code
 
 ```yaml
-name: GitHub Streak Saver
+name: Evergreen Streak Saver
 
 on:
   schedule:
-    - cron: '0 3 * * *'  # Runs every day at 8:30 AM IST (3:00 AM UTC)
-  workflow_dispatch:
+    - cron: '0 3 * * *'  # Runs daily at 8:30 AM IST
+  workflow_dispatch:      # Manual trigger anytime
 
 jobs:
   update-commit:
@@ -70,57 +86,55 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Update timestamp file
+      - name: Smart Activity Check
+        id: check_activity
         run: |
-          echo "Last updated: $(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')" > update.txt
+          TODAY=$(TZ='Asia/Kolkata' date '+%Y-%m-%d')
+          EVENTS=$(curl -s -H "Accept: application/vnd.github+json" "https://api.github.com/users/Karnvendrasingh/events/public" || echo "[]")
+          COMMITTED_TODAY=$(echo "$EVENTS" | grep -E "\"type\": \"PushEvent\"" -A 5 | grep "\"created_at\": \"$TODAY" || true)
+          
+          if [ -n "$COMMITTED_TODAY" ] && [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            echo "Natural commit detected for today ($TODAY)! Skipping automated commit."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Commit and push changes
+      - name: Organic Timing Jitter
+        if: steps.check_activity.outputs.skip != 'true'
+        run: |
+          if [ "${{ github.event_name }}" == "schedule" ]; then
+            DELAY=$((RANDOM % 1680 + 120))
+            sleep $DELAY
+          fi
+
+      - name: Update Activity Logs
+        if: steps.check_activity.outputs.skip != 'true'
+        run: |
+          TIMESTAMP=$(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')
+          DATE_ONLY=$(TZ='Asia/Kolkata' date '+%Y-%m-%d')
+          TIME_ONLY=$(TZ='Asia/Kolkata' date '+%H:%M:%S %Z')
+          echo "Last updated: $TIMESTAMP" > update.txt
+          echo "| $DATE_ONLY $TIME_ONLY | Streak Safety Backup | ✅ Active |" >> history.md
+
+      - name: Commit and Push Changes
+        if: steps.check_activity.outputs.skip != 'true'
         run: |
           git config --global user.name "Karnvendrasingh"
           git config --global user.email "karnvendrasingh@gmail.com"
-          git add update.txt
-          git commit -m "Daily Commit" || echo "No changes to commit"
+          MESSAGES=(
+            "docs: sync daily activity log"
+            "chore: update status timestamp"
+            "docs: update streak records"
+            "refactor: refresh build metadata"
+            "docs: log daily session activity"
+            "style: update activity metrics"
+          )
+          SELECTED_MSG="${MESSAGES[$RANDOM % ${#MESSAGES[@]}]}"
+          git add update.txt history.md
+          git commit -m "$SELECTED_MSG" || echo "No changes to commit"
           git push origin main
 ```
-
----
-
-## 🔄 Run Manually
-
-If you ever want to trigger it right away:
-
-1. Go to your repository → **Actions**
-2. Select **GitHub Streak Saver**
-3. Click **Run workflow** → Run manually
-
----
-
-## 🧩 Customize It
-
-| Goal | What to Change |
-|------|----------------|
-| 🕒 **Change run time** | Update the `cron` line (UTC-based) |
-| 🗂 **Change file name** | Replace `update.txt` with your file name |
-| 🧾 **Append instead of overwrite** | Use `>>` instead of `>` in echo command |
-| 🌍 **Change timezone** | Replace `Asia/Kolkata` with your own timezone |
-
----
-
-## 💡 Pro Tip: Add a History Log
-
-Want to track all your streak updates?
-
-**Replace this line:**
-```bash
-echo "Last updated: $(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')" > update.txt
-```
-
-**with this:**
-```bash
-echo "Updated on: $(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')" >> history.txt
-```
-
-➡️ It will keep a full log of all daily commits inside `history.txt`.
 
 ---
 
@@ -133,16 +147,12 @@ git clone https://github.com/Karnvendrasingh/evergreen-streak.git
 cd evergreen-streak
 ```
 
-### 2️⃣ Enable GitHub Actions
+### 2️⃣ Enable GitHub Actions Permissions
 
 - Go to **Settings** → **Actions** → **General**
 - Under **Workflow permissions**, select:
   - ✅ **Read and write permissions**
   - ✅ **Allow GitHub Actions to create and approve pull requests**
-
-### 3️⃣ Let It Run!
-
-The workflow will automatically run daily at **8:30 AM IST**. You can also trigger it manually from the **Actions** tab.
 
 ---
 
@@ -150,12 +160,6 @@ The workflow will automatically run daily at **8:30 AM IST**. You can also trigg
 
 **Karnvendra Singh**  
 💼 [GitHub](https://github.com/Karnvendrasingh) • 🌍 [LinkedIn](https://www.linkedin.com/in/karnvendrasingh/) • 📧 [Email](mailto:karnvendrasingh@gmail.com) • 🧠 Automating Everyday Productivity
-
----
-
-## ⭐ Support
-
-If you like this project, consider giving it a ⭐ **Star** — it helps keep the streak going 😉
 
 ---
 
