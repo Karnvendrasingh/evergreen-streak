@@ -2,7 +2,8 @@ name: Evergreen Streak Saver
 
 on:
   schedule:
-    - cron: '0 3 * * *'  # Runs daily at 8:30 AM IST (03:00 UTC)
+    - cron: '0 3 * * *'   # 8:30 AM IST Morning Check
+    - cron: '0 18 * * *'  # 11:30 PM IST Emergency Fail-Safe Check
   workflow_dispatch:      # Allows manual trigger at any time
 
 jobs:
@@ -45,25 +46,43 @@ jobs:
             sleep $DELAY
           fi
 
-      - name: Fetch Tech Quote / Tip
-        id: get_quote
+      - name: Fetch Real-World Weather Telemetry
+        id: get_weather
         if: steps.check_activity.outputs.skip != 'true'
         run: |
-          QUOTES=(
-            "Clean code always looks like it was written by someone who cares. — Robert C. Martin"
-            "Simplicity is prerequisite for reliability. — Edsger W. Dijkstra"
-            "First, solve the problem. Then, write the code. — John Johnson"
-            "Make it work, make it right, make it fast. — Kent Beck"
-            "Any fool can write code that a computer can understand. Good programmers write code that humans can understand. — Martin Fowler"
-            "Programming isn't about what you know; it's about what you can figure out. — Chris Pine"
-            "Code is like humor. When you have to explain it, it’s bad. — Cory House"
-            "Fix the cause, not the symptom. — Steve Maguire"
-            "Optimism is an occupational hazard of programming: feedback is the treatment. — Kent Beck"
-            "Experience is the name everyone gives to their mistakes. — Oscar Wilde"
+          WEATHER_DATA=$(curl -s "https://api.open-meteo.com/v1/forecast?latitude=28.61&longitude=77.20&current_weather=true" || echo "{}")
+          TEMP=$(echo "$WEATHER_DATA" | grep -o '"temperature":[^,]*' | cut -d: -f2 || echo "26")
+          WCODE=$(echo "$WEATHER_DATA" | grep -o '"weathercode":[^,]*' | cut -d: -f2 || echo "0")
+          
+          case $WCODE in
+            0|1) CONDITION="☀️ Clear" ;;
+            2|3) CONDITION="⛅ Partly Cloudy" ;;
+            45|48) CONDITION="🌫️ Foggy" ;;
+            51|53|55|61|63|65) CONDITION="🌧️ Rain" ;;
+            80|81|82) CONDITION="🌦️ Showers" ;;
+            *) CONDITION="🌤️ Fair" ;;
+          esac
+          
+          TELEMETRY="${CONDITION} ${TEMP}°C"
+          echo "telemetry=$TELEMETRY" >> $GITHUB_OUTPUT
+          echo "Weather Telemetry: $TELEMETRY"
+
+      - name: Fetch Tech Tip / Insight
+        id: get_tip
+        if: steps.check_activity.outputs.skip != 'true'
+        run: |
+          TIPS=(
+            "💡 **Git Tip**: Use 'git commit --amend --no-edit' to quickly add staged changes to your last commit."
+            "💡 **Python Tip**: Use 'dict.get(key, default)' to safely access dictionary values without raising KeyError."
+            "💡 **JS Tip**: Use 'structuredClone(obj)' for deep object cloning in modern JavaScript."
+            "💡 **CLI Tip**: Use 'ctrl + r' to reverse search terminal command history instantly."
+            "💡 **Clean Code**: Keep functions small and focused on doing a single task exceptionally well."
+            "💡 **Git Tip**: Use 'git log --oneline --graph --all' to view a compact visual tree of all branches."
+            "💡 **Dev Productivity**: Automate repetitive tasks so you can focus on core logic."
           )
-          RANDOM_Q=${QUOTES[$RANDOM % ${#QUOTES[@]}]}
-          echo "quote=$RANDOM_Q" >> $GITHUB_OUTPUT
-          echo "Fetched Quote: $RANDOM_Q"
+          RANDOM_TIP="${TIPS[$RANDOM % ${#TIPS[@]}]}"
+          echo "tip=$RANDOM_TIP" >> $GITHUB_OUTPUT
+          echo "Fetched Tip: $RANDOM_TIP"
 
       - name: Update Activity Logs & Live README Counter
         if: steps.check_activity.outputs.skip != 'true'
@@ -71,20 +90,32 @@ jobs:
           TIMESTAMP=$(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')
           DATE_ONLY=$(TZ='Asia/Kolkata' date '+%Y-%m-%d')
           TIME_ONLY=$(TZ='Asia/Kolkata' date '+%H:%M:%S %Z')
-          QUOTE="${{ steps.get_quote.outputs.quote }}"
+          TELEMETRY="${{ steps.get_weather.outputs.telemetry }}"
+          TIP="${{ steps.get_tip.outputs.tip }}"
           
           # Update single-line update.txt
           echo "Last updated: $TIMESTAMP" > update.txt
           
           # Append formatted record to history.md
-          echo "| $DATE_ONLY $TIME_ONLY | Streak Safety Backup | $QUOTE | ✅ Active |" >> history.md
+          echo "| $DATE_ONLY $TIME_ONLY | Streak Safety Backup | $TELEMETRY | $TIP | ✅ Active |" >> history.md
           
-          # Count total backup logs (subtract header lines)
+          # Count total backup logs
           TOTAL_BACKUPS=$(($(wc -l < history.md) - 5))
           if [ $TOTAL_BACKUPS -lt 1 ]; then TOTAL_BACKUPS=1; fi
-          
-          # Update live counter badge in README.md if present
           sed -i "s/Saved%20Backups-[0-9]*/Saved%20Backups-${TOTAL_BACKUPS}/g" README.md || true
+          
+          # Calculate Day of Year & Progress Bar
+          DAY_OF_YEAR=$(date +%j | sed 's/^0*//')
+          YEAR=$(date +%Y)
+          PERCENT=$((DAY_OF_YEAR * 100 / 365))
+          FILLED=$((PERCENT / 5))
+          EMPTY=$((20 - FILLED))
+          BAR=$(printf '█%.0s' $(seq 1 $FILLED 2>/dev/null) || echo "██████████")
+          EMPTY_BAR=$(printf '░%.0s' $(seq 1 $EMPTY 2>/dev/null) || echo "░░░░░░░░░░")
+          
+          PROGRESS_LINE="🎯 **${YEAR} Annual Goal**: [\`${BAR}${EMPTY_BAR}\`] **${DAY_OF_YEAR}/365 Days** (${PERCENT}%)"
+          sed -i "s|🎯 \*\*.* Annual Goal\*\*:.*|${PROGRESS_LINE}|g" README.md || true
+          sed -i "s|> 💡 \*\*Developer Tip of the Day\*\*:.*|> ${TIP}|g" README.md || true
 
       - name: Send Discord Notification (Optional)
         if: steps.check_activity.outputs.skip != 'true' && env.DISCORD_WEBHOOK != ''
@@ -92,19 +123,20 @@ jobs:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
           TIMESTAMP=$(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')
-          QUOTE="${{ steps.get_quote.outputs.quote }}"
+          TELEMETRY="${{ steps.get_weather.outputs.telemetry }}"
+          TIP="${{ steps.get_tip.outputs.tip }}"
           curl -H "Content-Type: application/json" -X POST -d '{
             "embeds": [{
               "title": "🌱 Evergreen Streak Saved!",
               "color": 3066993,
               "fields": [
                 {"name": "Date & Time", "value": "'"$TIMESTAMP"'", "inline": true},
-                {"name": "Status", "value": "✅ Streak Active", "inline": true},
-                {"name": "Daily Quote", "value": "'"$QUOTE"'", "inline": false}
+                {"name": "Weather Telemetry", "value": "'"$TELEMETRY"'", "inline": true},
+                {"name": "Developer Tip", "value": "'"$TIP"'", "inline": false}
               ],
               "footer": {"text": "Evergreen Streak • Automating Productivity"}
             }]
-          }' "$DISCORD_WEBHOOK" || echo "Discord notification failed or not configured."
+          }' "$DISCORD_WEBHOOK" || echo "Discord notification failed."
 
       - name: Send Telegram Notification (Optional)
         if: steps.check_activity.outputs.skip != 'true' && env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
@@ -113,8 +145,9 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           TIMESTAMP=$(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')
-          QUOTE="${{ steps.get_quote.outputs.quote }}"
-          MSG="🌱 *Evergreen Streak Saved!*%0A%0A📅 *Time:* $TIMESTAMP%0A✅ *Status:* Active%0A💬 *Quote:* _$QUOTE_"
+          TELEMETRY="${{ steps.get_weather.outputs.telemetry }}"
+          TIP="${{ steps.get_tip.outputs.tip }}"
+          MSG="🌱 *Evergreen Streak Saved!*%0A%0A📅 *Time:* $TIMESTAMP%0A🌤️ *Weather:* $TELEMETRY%0A💡 *Tip:* _$TIP_"
           curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" -d "chat_id=${TELEGRAM_CHAT_ID}&text=${MSG}&parse_mode=Markdown" || echo "Telegram notification failed."
 
       - name: Commit and Push Changes
@@ -123,7 +156,6 @@ jobs:
           git config --global user.name "Karnvendrasingh"
           git config --global user.email "karnvendrasingh@gmail.com"
           
-          # Array of clean, realistic conventional commit messages
           MESSAGES=(
             "docs: sync daily activity log"
             "chore: update status timestamp"
@@ -133,7 +165,6 @@ jobs:
             "style: update activity metrics"
           )
           
-          # Pick a random message index
           RANDOM_INDEX=$((RANDOM % ${#MESSAGES[@]}))
           SELECTED_MSG="${MESSAGES[$RANDOM_INDEX]}"
           

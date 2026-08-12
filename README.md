@@ -3,7 +3,7 @@
 # 🌱 Evergreen Streak
 
 > 🚀 Smart, Organic & Automated GitHub Streak Saver  
-> An intelligent **GitHub Actions** workflow that acts as a safety net for your GitHub contribution streak—firing only when you haven't committed naturally, with random execution timing, programming quotes, live streak tracking, and optional Discord/Telegram notifications! 🌿
+> An intelligent **GitHub Actions** workflow featuring real-world weather telemetry, daily developer tech tips, annual streak progress bars, 11:30 PM emergency fail-safe triggers, and optional Discord/Telegram notifications! 🌿
 
 ![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-Smart%20Enabled-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
 ![Saved Backups](https://img.shields.io/badge/Saved%20Backups-1-success?style=for-the-badge&logo=git&logoColor=white)
@@ -14,25 +14,34 @@
 
 ---
 
-## ✨ Full Feature Suite
+🎯 **2026 Annual Goal**: [`████████████░░░░░░░░`] **225/365 Days** (61%)
+
+> 💡 **Developer Tip of the Day**: Use `git commit --amend --no-edit` to quickly add staged changes to your last commit.
+
+---
+
+## ✨ Advanced Feature Suite
 
 🛡️ **Smart Safety Net (Check-Before-Commit)**  
-Checks GitHub API before executing. If you have already made commits today across your public repos, it **skips execution** so your activity looks 100% natural!
+Queries GitHub API before executing. If you have already made commits today across your public repos, it **skips execution** so your activity looks 100% natural!
+
+🚨 **Dual-Check Fail-Safe (8:30 AM & 11:30 PM IST)**  
+Runs a morning check (8:30 AM IST) and a late-night emergency check (11:30 PM IST) before midnight so your streak is guaranteed never to break.
+
+🌤️ **Real-World Weather Telemetry**  
+Fetches real-time weather & temperature data (in IST) via Open-Meteo API and logs telemetry in your history record.
+
+💡 **Daily Developer Tips & Insights**  
+Rotates actionable Git, Python, JavaScript, and CLI productivity tips in both `README.md` and commit details.
 
 🎲 **Organic Timing Jitter**  
-Adds a randomized delay (2 to 30 minutes) before committing so execution times naturally vary every day instead of hitting the exact same minute.
+Adds a randomized delay (2 to 30 minutes) before committing so execution times naturally vary every day.
 
-💡 **Daily Developer Tips & Quotes**  
-Fetches and attaches inspirational programming quotes/tips to your activity log and commit descriptions.
-
-📊 **Live Streak Counter**  
-Automatically updates the `Saved Backups` badge in `README.md` every time a streak safety commit is generated.
+📊 **Annual Streak Goal Progress Bar**  
+Renders a dynamic visual ASCII progress bar directly in `README.md` tracking annual streak progress!
 
 🔔 **Instant Webhook Notifications (Discord & Telegram)**  
 Optionally notifies your phone, Discord server, or Telegram chat whenever a streak commit is safely generated.
-
-📖 **Structured Activity History Log**  
-Appends clean, formatted Markdown records to [`history.md`](file:///d:/GithubAuto/Github-Streak-Saver-main/history.md) for transparent, clean activity history tracking.
 
 ---
 
@@ -40,24 +49,24 @@ Appends clean, formatted Markdown records to [`history.md`](file:///d:/GithubAut
 
 ```mermaid
 flowchart TD
-    A[Cron Schedule Trigger / Manual] --> B[Check GitHub API for Today's Activity]
+    A[Triggers: 8:30 AM & 11:30 PM IST / Manual] --> B[Check GitHub API for Today's Activity]
     B -->|Natural Commit Detected| C[Skip Execution - Maintain 100% Organic Activity]
     B -->|No Commit Yet Today| D[Apply Random Timing Delay - 2 to 30 mins]
-    D --> E[Fetch Daily Tech Quote & Update Logs]
-    E --> F[Auto-Update Live Counter Badge in README.md]
+    D --> E[Fetch Weather Telemetry & Daily Tech Tip]
+    E --> F[Auto-Update Live Counter Badge & Progress Bar in README.md]
     F --> G[Send Discord / Telegram Webhook Notifications]
     G --> H[Commit with Random Conventional Message & Push to main]
 ```
 
 ---
 
-## 🕒 Example Activity Output
+## 🕒 Example Activity Log Output
 
 Your [`history.md`](file:///d:/GithubAuto/Github-Streak-Saver-main/history.md) log entries look like this:
 
-| Date & Time (IST) | Action | Daily Tech Quote / Tip | Status |
-|---|---|---|---|
-| 2026-08-13 08:42:15 IST | Streak Safety Backup | *Clean code always looks like it was written by someone who cares.* | ✅ Active |
+| Date & Time (IST) | Action | Weather Telemetry | Daily Tech Quote / Tip | Status |
+|---|---|---|---|---|
+| 2026-08-13 03:15:30 IST | Streak Safety Backup | ☀️ Clear 28°C | *Clean code always looks like it was written by someone who cares.* | ✅ Active |
 
 ---
 
