@@ -16,25 +16,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
       - name: Smart Activity Check
         id: check_activity
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
-          TODAY=$(TZ='Asia/Kolkata' date '+%Y-%m-%d')
-          echo "Checking user activity for $TODAY..."
-          
-          # Fetch recent public events for user
-          EVENTS=$(curl -s -H "Accept: application/vnd.github+json" "https://api.github.com/users/Karnvendrasingh/events/public" || echo "[]")
-          
-          # Check if user already pushed commits today across public repos
-          COMMITTED_TODAY=$(echo "$EVENTS" | grep -E "\"type\": \"PushEvent\"" -A 5 | grep "\"created_at\": \"$TODAY" || true)
-          
-          if [ -n "$COMMITTED_TODAY" ] && [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
-            echo "::notice::Natural commit detected for today ($TODAY)! Skipping automated commit to keep streak 100% organic."
-            echo "skip=true" >> $GITHUB_OUTPUT
-          else
-            echo "No natural commit detected yet today (or running manual dispatch). Proceeding with streak backup."
-            echo "skip=false" >> $GITHUB_OUTPUT
-          fi
+          python scripts/streak_updater.py --check-activity
 
       - name: Organic Timing Jitter
         if: steps.check_activity.outputs.skip != 'true'
@@ -46,109 +39,14 @@ jobs:
             sleep $DELAY
           fi
 
-      - name: Fetch Real-World Weather Telemetry
-        id: get_weather
-        if: steps.check_activity.outputs.skip != 'true'
-        run: |
-          WEATHER_DATA=$(curl -s "https://api.open-meteo.com/v1/forecast?latitude=28.61&longitude=77.20&current_weather=true" || echo "{}")
-          TEMP=$(echo "$WEATHER_DATA" | grep -o '"temperature":[^,]*' | cut -d: -f2 || echo "26")
-          WCODE=$(echo "$WEATHER_DATA" | grep -o '"weathercode":[^,]*' | cut -d: -f2 || echo "0")
-          
-          case $WCODE in
-            0|1) CONDITION="☀️ Clear" ;;
-            2|3) CONDITION="⛅ Partly Cloudy" ;;
-            45|48) CONDITION="🌫️ Foggy" ;;
-            51|53|55|61|63|65) CONDITION="🌧️ Rain" ;;
-            80|81|82) CONDITION="🌦️ Showers" ;;
-            *) CONDITION="🌤️ Fair" ;;
-          esac
-          
-          TELEMETRY="${CONDITION} ${TEMP}°C"
-          echo "telemetry=$TELEMETRY" >> $GITHUB_OUTPUT
-          echo "Weather Telemetry: $TELEMETRY"
-
-      - name: Fetch Tech Tip / Insight
-        id: get_tip
-        if: steps.check_activity.outputs.skip != 'true'
-        run: |
-          TIPS=(
-            "💡 **Git Tip**: Use 'git commit --amend --no-edit' to quickly add staged changes to your last commit."
-            "💡 **Python Tip**: Use 'dict.get(key, default)' to safely access dictionary values without raising KeyError."
-            "💡 **JS Tip**: Use 'structuredClone(obj)' for deep object cloning in modern JavaScript."
-            "💡 **CLI Tip**: Use 'ctrl + r' to reverse search terminal command history instantly."
-            "💡 **Clean Code**: Keep functions small and focused on doing a single task exceptionally well."
-            "💡 **Git Tip**: Use 'git log --oneline --graph --all' to view a compact visual tree of all branches."
-            "💡 **Dev Productivity**: Automate repetitive tasks so you can focus on core logic."
-          )
-          RANDOM_TIP="${TIPS[$RANDOM % ${#TIPS[@]}]}"
-          echo "tip=$RANDOM_TIP" >> $GITHUB_OUTPUT
-          echo "Fetched Tip: $RANDOM_TIP"
-
       - name: Update Activity Logs & Live README Counter
         if: steps.check_activity.outputs.skip != 'true'
-        run: |
-          TIMESTAMP=$(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')
-          DATE_ONLY=$(TZ='Asia/Kolkata' date '+%Y-%m-%d')
-          TIME_ONLY=$(TZ='Asia/Kolkata' date '+%H:%M:%S %Z')
-          TELEMETRY="${{ steps.get_weather.outputs.telemetry }}"
-          TIP="${{ steps.get_tip.outputs.tip }}"
-          
-          # Update single-line update.txt
-          echo "Last updated: $TIMESTAMP" > update.txt
-          
-          # Append formatted record to history.md
-          echo "| $DATE_ONLY $TIME_ONLY | Streak Safety Backup | $TELEMETRY | $TIP | ✅ Active |" >> history.md
-          
-          # Count total backup logs
-          TOTAL_BACKUPS=$(($(wc -l < history.md) - 5))
-          if [ $TOTAL_BACKUPS -lt 1 ]; then TOTAL_BACKUPS=1; fi
-          sed -i "s/Saved%20Backups-[0-9]*/Saved%20Backups-${TOTAL_BACKUPS}/g" README.md || true
-          
-          # Calculate Day of Year & Progress Bar
-          DAY_OF_YEAR=$(date +%j | sed 's/^0*//')
-          YEAR=$(date +%Y)
-          PERCENT=$((DAY_OF_YEAR * 100 / 365))
-          FILLED=$((PERCENT / 5))
-          EMPTY=$((20 - FILLED))
-          BAR=$(printf '█%.0s' $(seq 1 $FILLED 2>/dev/null) || echo "██████████")
-          EMPTY_BAR=$(printf '░%.0s' $(seq 1 $EMPTY 2>/dev/null) || echo "░░░░░░░░░░")
-          
-          PROGRESS_LINE="🎯 **${YEAR} Annual Goal**: [\`${BAR}${EMPTY_BAR}\`] **${DAY_OF_YEAR}/365 Days** (${PERCENT}%)"
-          sed -i "s|🎯 \*\*.* Annual Goal\*\*:.*|${PROGRESS_LINE}|g" README.md || true
-          sed -i "s|> 💡 \*\*Developer Tip of the Day\*\*:.*|> ${TIP}|g" README.md || true
-
-      - name: Send Discord Notification (Optional)
-        if: steps.check_activity.outputs.skip != 'true' && env.DISCORD_WEBHOOK != ''
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        run: |
-          TIMESTAMP=$(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')
-          TELEMETRY="${{ steps.get_weather.outputs.telemetry }}"
-          TIP="${{ steps.get_tip.outputs.tip }}"
-          curl -H "Content-Type: application/json" -X POST -d '{
-            "embeds": [{
-              "title": "🌱 Evergreen Streak Saved!",
-              "color": 3066993,
-              "fields": [
-                {"name": "Date & Time", "value": "'"$TIMESTAMP"'", "inline": true},
-                {"name": "Weather Telemetry", "value": "'"$TELEMETRY"'", "inline": true},
-                {"name": "Developer Tip", "value": "'"$TIP"'", "inline": false}
-              ],
-              "footer": {"text": "Evergreen Streak • Automating Productivity"}
-            }]
-          }' "$DISCORD_WEBHOOK" || echo "Discord notification failed."
-
-      - name: Send Telegram Notification (Optional)
-        if: steps.check_activity.outputs.skip != 'true' && env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != ''
-        env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          TIMESTAMP=$(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S %Z')
-          TELEMETRY="${{ steps.get_weather.outputs.telemetry }}"
-          TIP="${{ steps.get_tip.outputs.tip }}"
-          MSG="🌱 *Evergreen Streak Saved!*%0A%0A📅 *Time:* $TIMESTAMP%0A🌤️ *Weather:* $TELEMETRY%0A💡 *Tip:* _$TIP_"
-          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" -d "chat_id=${TELEGRAM_CHAT_ID}&text=${MSG}&parse_mode=Markdown" || echo "Telegram notification failed."
+          python scripts/streak_updater.py --run-update
 
       - name: Commit and Push Changes
         if: steps.check_activity.outputs.skip != 'true'
@@ -170,4 +68,5 @@ jobs:
           
           git add update.txt history.md README.md
           git commit -m "$SELECTED_MSG" || echo "No changes to commit"
+          git pull --rebase origin main || true
           git push origin main
